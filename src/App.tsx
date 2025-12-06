@@ -62,6 +62,7 @@ function AppContent() {
       <main className="flex-1 overflow-y-auto">
         {renderScreen()}
       </main>
+      <elevenlabs-convai agent-id="agent_0901kbteqt7nfy6vm4xnknepj78z"></elevenlabs-convai>
     </div>
   );
 }
