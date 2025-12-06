@@ -29,10 +29,13 @@ export function AIRecommendations() {
     setAiResponse('');
 
     try {
-      const response = await fetch('https://cardscoutai.app.n8n.cloud/webhook/ai-assist-engine', {
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-assistant`;
+
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
         },
         body: JSON.stringify({
           message: aiQuery,
@@ -40,7 +43,8 @@ export function AIRecommendations() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to get AI response');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to get AI response');
       }
 
       const data = await response.json();
