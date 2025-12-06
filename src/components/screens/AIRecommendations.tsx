@@ -1,18 +1,62 @@
+import { useState } from 'react';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
-import { 
-  Sparkles, 
-  TrendingUp, 
+import {
+  Sparkles,
+  TrendingUp,
   Zap,
   AlertCircle,
   CheckCircle,
   ArrowRight,
   X,
   Users,
-  Clock
+  Clock,
+  Send,
+  Loader2
 } from 'lucide-react';
 
 export function AIRecommendations() {
+  const [aiQuery, setAiQuery] = useState('');
+  const [aiResponse, setAiResponse] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleAiQuery = async () => {
+    if (!aiQuery.trim()) return;
+
+    setIsLoading(true);
+    setError('');
+    setAiResponse('');
+
+    try {
+      const response = await fetch('https://cardscoutai.app.n8n.cloud/webhook/ai-assist-engine', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: aiQuery,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to get AI response');
+      }
+
+      const data = await response.json();
+
+      if (data.content && data.content[0] && data.content[0].text) {
+        setAiResponse(data.content[0].text);
+      } else {
+        setAiResponse(JSON.stringify(data, null, 2));
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const recommendations = [
     {
       id: 1,
@@ -157,6 +201,70 @@ export function AIRecommendations() {
           </div>
         </Card>
       </div>
+
+      {/* AI Assistant Section */}
+      <Card gradient className="mb-8">
+        <div className="p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center">
+              <Sparkles className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h3 className="text-white">AI Assistant</h3>
+              <p className="text-white/60 text-sm">Ask for personalized recommendations and insights</p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={aiQuery}
+                onChange={(e) => setAiQuery(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleAiQuery()}
+                placeholder="Ask me anything about your projects, tasks, or workflows..."
+                className="flex-1 px-4 py-3 rounded-xl bg-white/[0.03] border border-white/10 text-white placeholder-white/40 focus:outline-none focus:border-violet-500/50 transition-colors"
+                disabled={isLoading}
+              />
+              <Button
+                variant="primary"
+                onClick={handleAiQuery}
+                disabled={isLoading || !aiQuery.trim()}
+              >
+                {isLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Send className="w-4 h-4" />
+                )}
+              </Button>
+            </div>
+
+            {error && (
+              <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-red-400 text-sm font-medium mb-1">Error</p>
+                    <p className="text-red-400/80 text-sm">{error}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {aiResponse && (
+              <div className="p-4 rounded-xl bg-white/[0.03] border border-white/10">
+                <div className="flex items-start gap-3">
+                  <Sparkles className="w-5 h-5 text-violet-400 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="text-violet-400 text-sm font-medium mb-2">AI Response</p>
+                    <p className="text-white/80 text-sm whitespace-pre-wrap">{aiResponse}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </Card>
 
       {/* Filters */}
       <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
