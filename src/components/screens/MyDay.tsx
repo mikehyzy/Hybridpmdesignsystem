@@ -28,6 +28,8 @@ export function MyDay() {
   const { user } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
+  const [aiSuggestion, setAiSuggestion] = useState<string>('');
+  const [loadingAI, setLoadingAI] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -58,6 +60,31 @@ export function MyDay() {
     setTasks(tasks.map(t =>
       t.id === taskId ? { ...t, completed: !currentStatus } : t
     ));
+  };
+
+  const fetchAISuggestion = async () => {
+    setLoadingAI(true);
+    try {
+      const response = await fetch('https://cardscoutai.app.n8n.cloud/webhook/ai-main', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: "Help me plan my morning. What should I focus on?"
+        }),
+      });
+
+      const data = await response.json();
+      if (data.output?.[0]?.content?.[0]?.text) {
+        setAiSuggestion(data.output[0].content[0].text);
+      }
+    } catch (error) {
+      console.error('Error fetching AI suggestion:', error);
+      setAiSuggestion('Unable to fetch AI suggestions at this time.');
+    } finally {
+      setLoadingAI(false);
+    }
   };
 
   const getPriorityColor = (priority: string) => {
@@ -167,19 +194,36 @@ export function MyDay() {
               <Sparkles className="w-5 h-5 text-white" />
             </div>
             <div className="flex-1">
-              <h3 className="text-white mb-2">AI Suggestion</h3>
-              <p className="text-white/60 text-sm mb-4">
-                Start with &quot;Review Q4 product roadmap&quot; while your energy is high. 
-                Save lower-energy tasks like template updates for after lunch.
-              </p>
-              <div className="flex gap-3">
-                <Button variant="ai" size="sm">
-                  Reorder Tasks
-                </Button>
-                <Button variant="ghost" size="sm">
-                  Not Now
-                </Button>
-              </div>
+              <h3 className="text-white mb-2">AI Morning Planner</h3>
+              {!aiSuggestion && !loadingAI ? (
+                <>
+                  <p className="text-white/60 text-sm mb-4">
+                    Get personalized suggestions for planning your morning based on your tasks and energy levels.
+                  </p>
+                  <Button variant="ai" size="sm" onClick={fetchAISuggestion}>
+                    Get AI Suggestions
+                  </Button>
+                </>
+              ) : loadingAI ? (
+                <div className="flex items-center gap-2 text-white/60 text-sm">
+                  <div className="animate-spin w-4 h-4 border-2 border-white/20 border-t-violet-400 rounded-full" />
+                  <span>Getting personalized suggestions...</span>
+                </div>
+              ) : (
+                <>
+                  <div className="text-white/70 text-sm mb-4 max-h-96 overflow-y-auto whitespace-pre-wrap">
+                    {aiSuggestion}
+                  </div>
+                  <div className="flex gap-3">
+                    <Button variant="ai" size="sm" onClick={fetchAISuggestion}>
+                      Refresh Suggestions
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => setAiSuggestion('')}>
+                      Close
+                    </Button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
