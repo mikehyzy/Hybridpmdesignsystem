@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { Auth } from './components/Auth';
 import { Sidebar } from './components/Sidebar';
 import { Dashboard } from './components/screens/Dashboard';
 import { ProjectHub } from './components/screens/ProjectHub';
@@ -8,17 +10,30 @@ import { AIRecommendations } from './components/screens/AIRecommendations';
 import { MyDay } from './components/screens/MyDay';
 import { WorkflowBuilder } from './components/screens/WorkflowBuilder';
 
-export type Screen = 
-  | 'dashboard' 
-  | 'project-hub' 
-  | 'knowledge-base' 
-  | 'build-focus-plan' 
-  | 'ai-recommendations' 
-  | 'my-day' 
+export type Screen =
+  | 'dashboard'
+  | 'project-hub'
+  | 'knowledge-base'
+  | 'build-focus-plan'
+  | 'ai-recommendations'
+  | 'my-day'
   | 'workflow-builder';
 
-export default function App() {
+function AppContent() {
+  const { user, loading } = useAuth();
   const [currentScreen, setCurrentScreen] = useState<Screen>('dashboard');
+
+  if (loading) {
+    return (
+      <div className="flex h-screen bg-[#0A0A0F] items-center justify-center">
+        <div className="text-white/60">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Auth />;
+  }
 
   const renderScreen = () => {
     switch (currentScreen) {
@@ -48,5 +63,13 @@ export default function App() {
         {renderScreen()}
       </main>
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }

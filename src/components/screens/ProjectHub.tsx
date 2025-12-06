@@ -1,80 +1,62 @@
+import { useEffect, useState } from 'react';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
-import { 
-  Search, 
-  Filter, 
-  Plus, 
-  TrendingUp, 
-  AlertCircle, 
+import {
+  Search,
+  Filter,
+  Plus,
+  TrendingUp,
+  AlertCircle,
   CheckCircle,
   Clock,
   Users,
   MoreVertical
 } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../contexts/AuthContext';
+
+interface Project {
+  id: string;
+  name: string;
+  status: string;
+  progress: number;
+  team_size: number;
+  deadline: string;
+  phase: string;
+  risk: string;
+}
 
 export function ProjectHub() {
-  const projects = [
-    {
-      id: 1,
-      name: 'Enterprise Platform',
-      status: 'on-track',
-      progress: 87,
-      team: 8,
-      deadline: 'Dec 15, 2025',
-      phase: 'Development',
-      risk: 'low',
-    },
-    {
-      id: 2,
-      name: 'Mobile App Redesign',
-      status: 'at-risk',
-      progress: 62,
-      team: 5,
-      deadline: 'Dec 20, 2025',
-      phase: 'Design',
-      risk: 'medium',
-    },
-    {
-      id: 3,
-      name: 'API Integration',
-      status: 'on-track',
-      progress: 45,
-      team: 4,
-      deadline: 'Dec 28, 2025',
-      phase: 'Planning',
-      risk: 'low',
-    },
-    {
-      id: 4,
-      name: 'Customer Portal',
-      status: 'ahead',
-      progress: 92,
-      team: 6,
-      deadline: 'Dec 10, 2025',
-      phase: 'Testing',
-      risk: 'low',
-    },
-    {
-      id: 5,
-      name: 'Analytics Dashboard',
-      status: 'behind',
-      progress: 28,
-      team: 3,
-      deadline: 'Dec 18, 2025',
-      phase: 'Development',
-      risk: 'high',
-    },
-    {
-      id: 6,
-      name: 'Infrastructure Upgrade',
-      status: 'on-track',
-      progress: 55,
-      team: 7,
-      deadline: 'Jan 5, 2026',
-      phase: 'Implementation',
-      risk: 'low',
-    },
-  ];
+  const { user } = useAuth();
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const fetchProjects = async () => {
+      const { data } = await supabase
+        .from('projects')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      setProjects(data || []);
+      setLoading(false);
+    };
+
+    fetchProjects();
+  }, [user]);
+
+  if (loading) {
+    return (
+      <div className="p-8 max-w-[1600px] mx-auto">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-white/60">Loading...</div>
+        </div>
+      </div>
+    );
+  }
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -161,7 +143,7 @@ export function ProjectHub() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-white/40 text-xs mb-1">Total Projects</p>
-                <p className="text-2xl text-white">12</p>
+                <p className="text-2xl text-white">{projects.length}</p>
               </div>
               <div className="w-10 h-10 rounded-xl bg-violet-500/20 flex items-center justify-center">
                 <CheckCircle className="w-5 h-5 text-violet-400" />
@@ -175,7 +157,7 @@ export function ProjectHub() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-white/40 text-xs mb-1">On Track</p>
-                <p className="text-2xl text-white">8</p>
+                <p className="text-2xl text-white">{projects.filter(p => p.status === 'on-track').length}</p>
               </div>
               <div className="w-10 h-10 rounded-xl bg-cyan-500/20 flex items-center justify-center">
                 <TrendingUp className="w-5 h-5 text-cyan-400" />
@@ -189,7 +171,7 @@ export function ProjectHub() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-white/40 text-xs mb-1">At Risk</p>
-                <p className="text-2xl text-white">2</p>
+                <p className="text-2xl text-white">{projects.filter(p => p.status === 'at-risk').length}</p>
               </div>
               <div className="w-10 h-10 rounded-xl bg-orange-500/20 flex items-center justify-center">
                 <AlertCircle className="w-5 h-5 text-orange-400" />
@@ -203,7 +185,7 @@ export function ProjectHub() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-white/40 text-xs mb-1">Behind</p>
-                <p className="text-2xl text-white">2</p>
+                <p className="text-2xl text-white">{projects.filter(p => p.status === 'behind').length}</p>
               </div>
               <div className="w-10 h-10 rounded-xl bg-red-500/20 flex items-center justify-center">
                 <Clock className="w-5 h-5 text-red-400" />
@@ -215,7 +197,20 @@ export function ProjectHub() {
 
       {/* Projects Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-        {projects.map((project) => (
+        {projects.length === 0 ? (
+          <div className="col-span-full">
+            <Card>
+              <div className="p-8 text-center">
+                <p className="text-white/40 mb-4">No projects yet</p>
+                <Button variant="primary" size="md">
+                  <Plus className="w-4 h-4" />
+                  Create Your First Project
+                </Button>
+              </div>
+            </Card>
+          </div>
+        ) : (
+          projects.map((project) => (
           <Card key={project.id} hover>
             <div className="p-6">
               <div className="flex items-start justify-between mb-4">
@@ -247,11 +242,11 @@ export function ProjectHub() {
                 <div className="flex items-center gap-4 text-xs text-white/60">
                   <div className="flex items-center gap-2">
                     <Users className="w-3.5 h-3.5" />
-                    <span>{project.team} members</span>
+                    <span>{project.team_size} members</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Clock className="w-3.5 h-3.5" />
-                    <span>{project.deadline}</span>
+                    <span>{new Date(project.deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                   </div>
                 </div>
 
@@ -271,7 +266,8 @@ export function ProjectHub() {
               </div>
             </div>
           </Card>
-        ))}
+          ))
+        )}
       </div>
     </div>
   );

@@ -1,7 +1,8 @@
+import { useEffect, useState } from 'react';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
-import { 
-  CheckCircle, 
+import {
+  CheckCircle,
   Plus,
   Sparkles,
   Clock,
@@ -10,55 +11,54 @@ import {
   MoreVertical,
   Calendar
 } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../contexts/AuthContext';
+
+interface Task {
+  id: string;
+  title: string;
+  priority: string;
+  energy: string;
+  estimated_time: string;
+  project: string;
+  completed: boolean;
+}
 
 export function MyDay() {
-  const tasks = [
-    {
-      id: 1,
-      title: 'Review Q4 product roadmap',
-      priority: 'urgent',
-      energy: 'high',
-      estimatedTime: '2h',
-      project: 'Enterprise Platform',
-      completed: false,
-    },
-    {
-      id: 2,
-      title: 'Client sync: Enterprise features',
-      priority: 'high',
-      energy: 'medium',
-      estimatedTime: '1h',
-      project: 'Enterprise Platform',
-      completed: false,
-    },
-    {
-      id: 3,
-      title: 'Update sprint planning template',
-      priority: 'medium',
-      energy: 'low',
-      estimatedTime: '1h',
-      project: 'Knowledge Base',
-      completed: true,
-    },
-    {
-      id: 4,
-      title: 'Team standup - share progress',
-      priority: 'high',
-      energy: 'medium',
-      estimatedTime: '30m',
-      project: 'General',
-      completed: false,
-    },
-    {
-      id: 5,
-      title: 'Review design mockups',
-      priority: 'medium',
-      energy: 'medium',
-      estimatedTime: '45m',
-      project: 'Mobile App Redesign',
-      completed: false,
-    },
-  ];
+  const { user } = useAuth();
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const fetchTasks = async () => {
+      const today = new Date().toISOString().split('T')[0];
+
+      const { data } = await supabase
+        .from('tasks')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('due_date', today)
+        .order('created_at', { ascending: false });
+
+      setTasks(data || []);
+      setLoading(false);
+    };
+
+    fetchTasks();
+  }, [user]);
+
+  const toggleTaskComplete = async (taskId: string, currentStatus: boolean) => {
+    await supabase
+      .from('tasks')
+      .update({ completed: !currentStatus })
+      .eq('id', taskId);
+
+    setTasks(tasks.map(t =>
+      t.id === taskId ? { ...t, completed: !currentStatus } : t
+    ));
+  };
 
   const getPriorityColor = (priority: string) => {
     const colors: Record<string, string> = {
@@ -79,9 +79,19 @@ export function MyDay() {
     return colors[energy] || colors.medium;
   };
 
+  if (loading) {
+    return (
+      <div className="p-8 max-w-[1200px] mx-auto">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-white/60">Loading...</div>
+        </div>
+      </div>
+    );
+  }
+
   const completedCount = tasks.filter(t => t.completed).length;
   const totalTime = tasks.filter(t => !t.completed).reduce((acc, t) => {
-    const time = t.estimatedTime;
+    const time = t.estimated_time || '0m';
     const hours = time.includes('h') ? parseInt(time) : 0;
     const mins = time.includes('m') ? parseInt(time.replace('m', '').replace('h', '').split(' ').pop() || '0') : 0;
     return acc + (hours * 60) + mins;
@@ -177,8 +187,20 @@ export function MyDay() {
 
       {/* Tasks List */}
       <div className="space-y-3">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-white">Tasks</h2>
+        {tasks.length === 0 ? (
+          <Card>
+            <div className="p-8 text-center">
+              <p className="text-white/40 mb-4">No tasks for today yet</p>
+              <Button variant="primary" size="md">
+                <Plus className="w-4 h-4" />
+                Add Your First Task
+              </Button>
+            </div>
+          </Card>
+        ) : (
+          <>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-white">Tasks</h2>
           <div className="flex gap-2">
             <button className="text-xs px-3 py-1.5 rounded-lg bg-white/[0.03] border border-white/10 text-white/60 hover:text-white transition-all">
               Sort by Priority
@@ -193,11 +215,14 @@ export function MyDay() {
           <Card key={task.id} hover>
             <div className="p-5">
               <div className="flex items-start gap-4">
-                <button className={`mt-1 w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-all ${
-                  task.completed 
-                    ? 'bg-violet-500 border-violet-500' 
-                    : 'border-white/20 hover:border-violet-500/50'
-                }`}>
+                <button
+                  onClick={() => toggleTaskComplete(task.id, task.completed)}
+                  className={`mt-1 w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-all ${
+                    task.completed
+                      ? 'bg-violet-500 border-violet-500'
+                      : 'border-white/20 hover:border-violet-500/50'
+                  }`}
+                >
                   {task.completed && <CheckCircle className="w-3 h-3 text-white" />}
                 </button>
 
@@ -217,7 +242,7 @@ export function MyDay() {
                         </div>
                         <div className="flex items-center gap-1.5 text-xs text-white/60">
                           <Clock className="w-3 h-3" />
-                          <span>{task.estimatedTime}</span>
+                          <span>{task.estimated_time}</span>
                         </div>
                         <div className="flex items-center gap-1.5 text-xs text-white/60">
                           <Calendar className="w-3 h-3" />
@@ -246,6 +271,8 @@ export function MyDay() {
             </div>
           </Card>
         ))}
+          </>
+        )}
       </div>
 
       {/* Quick Add */}

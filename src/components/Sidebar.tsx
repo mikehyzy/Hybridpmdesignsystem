@@ -1,13 +1,15 @@
-import { 
-  LayoutDashboard, 
-  Folder, 
-  BookOpen, 
-  Sparkles, 
-  Lightbulb, 
-  CheckCircle, 
-  Workflow 
+import {
+  LayoutDashboard,
+  Folder,
+  BookOpen,
+  Sparkles,
+  Lightbulb,
+  CheckCircle,
+  Workflow,
+  LogOut
 } from 'lucide-react';
 import type { Screen } from '../App';
+import { useAuth } from '../contexts/AuthContext';
 
 interface SidebarProps {
   currentScreen: Screen;
@@ -32,6 +34,7 @@ const navItems: NavItem[] = [
 ];
 
 export function Sidebar({ currentScreen, onNavigate }: SidebarProps) {
+  const { signOut } = useAuth();
   const groupedItems = navItems.reduce((acc, item) => {
     const category = item.category || 'Other';
     if (!acc[category]) {
@@ -85,7 +88,15 @@ export function Sidebar({ currentScreen, onNavigate }: SidebarProps) {
         ))}
       </nav>
 
-      <div className="p-4 border-t border-white/5">
+      <div className="p-4 border-t border-white/5 space-y-3">
+        <button
+          onClick={() => signOut()}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-white/60 hover:text-white hover:bg-white/5 transition-all"
+        >
+          <LogOut className="w-4 h-4" />
+          <span className="text-sm">Sign Out</span>
+        </button>
+
         <div className="bg-gradient-to-br from-violet-500/10 to-fuchsia-500/10 border border-violet-500/20 rounded-xl p-4">
           <div className="flex items-start gap-3">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center flex-shrink-0">
